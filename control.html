@@ -119,7 +119,7 @@ function getData() {
 }
 
 // Create WebSocket connection.
-var socket = new WebSocket('ws://111.206.45.12:30270');
+var socket = new WebSocket('ws://' + location.hostname + ':18081');
 
 // Connection opened
 socket.addEventListener('open', function (event) {

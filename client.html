@@ -71,7 +71,7 @@ $('.pair-code-form').on('submit', function (evt) {
     var $button = $(this).find('button')
     $button.attr('disabled', true).text('连接中')
 
-    var addr = 'ws://111.206.45.12:30270'
+    var addr = 'ws://' + location.hostname + ':18081'
     $('.log .addr').html('<small>连接到 <u>' + addr + '</u></small> ')
 
     var socket = new WebSocket(addr);
