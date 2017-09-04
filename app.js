@@ -26,7 +26,10 @@ app.get('/devices', function (req, res, next) {
   var sid = req.cookies.sid
   var devices = []
   if (sid) {
-    devices = Object.keys(sessions[sid].devices)
+    var session = sessions[sid]
+    if (session) {
+      devices = Object.keys(session.devices)
+    }
   }
   res.send({
     code: 0,
