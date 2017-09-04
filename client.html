@@ -1,0 +1,144 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>test</title>
+        <link rel="stylesheet" type="text/css" href="https://cdn.staticfile.org/twitter-bootstrap/3.3.7/css/bootstrap.min.css">
+        <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+        <script src="https://cdn.staticfile.org/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
+        <style>
+.client-id {
+    font-size: 1.2em;
+    background: white;
+    border: 1px solid currentColor;
+    padding: 2px 8px;
+}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+<h1>Client</h1>
+<div class="alert alert-warning">
+    <div class="row">
+        <div class="col-xs-6">
+            本机ID <span class="client-id"></span>
+            <span class="glyphicon glyphicon-link"></span>
+        </div>
+        <div class="col-xs-6">
+            <form class="pair-code-form">
+                <div class="input-group">
+                  <input type="text" class="form-control pair-code" placeholder="配对码">
+                  <span class="input-group-btn">
+                    <button class="btn btn-default" type="submit">连接</button>
+                  </span>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="panel panel-default">
+    <div class="panel-body">
+        <div class="log">
+            <span class="addr"></span>
+            &nbsp;&nbsp;&nbsp;&nbsp;
+            <small>延迟: <span id="legacy">-- </span>ms</small>
+        </div>
+        <div id="content"></div>
+    </div>
+</div>
+
+        </div>
+        <script>
+
+$('.client-id').text(getClientId())
+$('.pair-code').val(getPairCode()).on('change', function () {
+    this.value = this.value.toUpperCase()
+    $(this).parent().find('button').attr('disabled', false).text('连接')
+})
+
+var $content = $('#content')
+var $legacy = $('#legacy')
+
+$('.pair-code-form').on('submit', function (evt) {
+    evt.preventDefault()
+
+    var pairCode = $('.pair-code').val().trim()
+    if (!pairCode) {
+        return
+    }
+    var $button = $(this).find('button')
+    $button.attr('disabled', true).text('连接中')
+
+    var addr = 'ws://' + location.hostname + ':18081'
+    $('.log .addr').html('<small>连接到 <u>' + addr + '</u></small> ')
+
+    var socket = new WebSocket(addr);
+
+    // Connection opened
+    socket.addEventListener('open', function (event) {
+        $button.text('已连接')
+
+        socket.send(JSON.stringify({
+            role: 'client',
+            sid: pairCode,
+            cid: getClientId(),
+            ts: Date.now(),
+            data: {}
+        }));
+    });
+
+    // Listen for messages
+    socket.addEventListener('message', function (event) {
+        var data = JSON.parse(event.data)
+        if (data.code) {
+            $content.text('出错了！' + data.msg)
+        }
+        else {
+            data = data.data
+            updateLegacy(data)
+            updateContent(data)
+        }
+    });
+})
+
+if ($('.pair-code').val()) {
+    $('.pair-code-form').submit()
+}
+
+function getClientId() {
+    return document.cookie.split(';').map(function (kv) {
+        return kv.trim()
+    }).filter(function (kv) {
+        return kv.indexOf('cid=') === 0
+    }).map(function (kv) {
+        return kv.split('=').pop()
+    })[0] || ''
+}
+
+function getPairCode() {
+    return location.search.substring(1).split('&').map(function (kv) {
+        return kv.trim()
+    }).filter(function (kv) {
+        return kv.indexOf('sid=') === 0
+    }).map(function (kv) {
+        return decodeURIComponent(kv.split('=').pop())
+    })[0] || ''
+}
+
+function updateLegacy(data) {
+    var stage2 = Date.now() - data.ts2
+    var stage1 = data.ts2 - data.ts
+    $legacy.text(stage1 + '+' + stage2 + '=' + (stage1 + stage2))
+}
+
+function updateContent(data) {
+    $content.text(data.desc).css({
+        color: data.color,
+        fontSize: data.size + 'px'
+    })
+}
+        </script>
+    </body>
+</html>

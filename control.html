@@ -1,0 +1,174 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>test</title>
+        <link rel="stylesheet" type="text/css" href="https://cdn.staticfile.org/twitter-bootstrap/3.3.7/css/bootstrap.min.css">
+        <link rel="stylesheet" type="text/css" href="https://cdn.staticfile.org/rangeslider.js/2.3.0/rangeslider.css">
+        <script src="https://cdn.staticfile.org/jquery/3.2.1/jquery.min.js"></script>
+        <script src="https://cdn.staticfile.org/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
+        <script src="https://cdn.staticfile.org/jquery.qrcode/1.0/jquery.qrcode.min.js"></script>
+        <script src="https://cdn.staticfile.org/rangeslider.js/2.3.0/rangeslider.js"></script>
+        <style>
+.pair-code {
+    font-size: 1.2em;
+    background: white;
+    border: 1px solid currentColor;
+    padding: 2px 8px;
+}
+.qrcode {
+    position: relative;
+    font-size: 1.5em;
+    font-weight: bold;
+}
+.qrcode-box {
+    position: absolute;
+    z-index: 10;
+    top: -10px;
+    right: 30px;
+    display: none;
+    border: 1px solid green;
+    border-radius: 2px;
+    box-shadow: 0 0 10px rgba(0, 255, 0, .4);
+    padding: 1em;
+    background: white
+}
+.qrcode-box canvas {
+    display: block;
+}
+.qrcode .glyphicon:hover + .qrcode-box {
+    display: block;
+}
+.rangeslider {
+    margin-top: 7px;
+}
+.devices-info {
+    margin-right: 1em;
+}
+.devices-info span {
+    font-weight: bold;
+}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+<h1>Control Panel</h1>
+
+<div class="alert alert-warning">
+    <div class="qrcode pull-right">
+        <span class="glyphicon glyphicon-qrcode"></span>
+        <div class="qrcode-box"></div>
+    </div>
+    <div class="devices-info pull-right">已连接
+        <span>?</span> 个设备</div>
+    配对码：
+    <span class="pair-code"></span>
+</div>
+
+
+<div class="panel panel-default">
+  <div class="panel-body">
+    <div class="row">
+        <div class="col-md-6">
+            <div class="form-group">
+                <label>Text</label>
+                <input type="text" class="form-control desc" value="Hello World!" />
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="form-group">
+                <label>Color</label>
+                <input type="color" class="form-control color" value="#FF9900" />
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="form-group">
+                <label>Size</label>
+                <input type="range" class="form-control size" value="18" min="10" max="60" step="1" />
+            </div>
+        </div>
+    </div>
+  </div>
+</div>
+        </div>
+
+        <script>
+$('.pair-code').text(getPairCode())
+
+var $desc = $('.desc')
+var $color = $('.color')
+var $size = $('.size')
+
+function getPairCode() {
+    return document.cookie.split(';').map(function (kv) {
+        return kv.trim()
+    }).filter(function (kv) {
+        return kv.indexOf('sid=') === 0
+    }).map(function (kv) {
+        return kv.split('=').pop()
+    })[0] || ''
+}
+
+function getData() {
+    return {
+        desc: $desc.val(),
+        color: $color.val(),
+        size: parseInt($size.val(), 10)
+    }
+}
+
+// Create WebSocket connection.
+var socket = new WebSocket('ws://' + location.hostname + ':18081');
+
+// Connection opened
+socket.addEventListener('open', function (event) {
+    socket.send(JSON.stringify({
+        role: 'control',
+        sid: getPairCode(),
+        ts: Date.now(),
+        data: getData()
+    }));
+});
+
+// Listen for messages
+socket.addEventListener('message', function (event) {
+    console.log('Message from server ', event.data);
+});
+
+$desc.on('keyup', handleInputChange)
+$color.on('change', handleInputChange)
+$size.rangeslider({
+    polyfill: false,
+    onSlide: handleInputChange
+})
+
+function handleInputChange() {
+    if (socket.readyState !== 1) {
+        return
+    }
+    socket.send(JSON.stringify({
+        role: 'control',
+        sid: getPairCode(),
+        ts: Date.now(),
+        data: getData()
+    }))
+}
+
+$('.qrcode-box').qrcode({
+    text: 'http://' + location.host + '/client?sid=' + getPairCode()
+})
+
+updateConnectedDevicesCount()
+function updateConnectedDevicesCount() {
+    $.getJSON('/devices').done(function (data) {
+        var devices = data.data.devices
+        $('.devices-info span').text(devices.length)
+            .attr('title', devices.join(','))
+        setTimeout(updateConnectedDevicesCount, 5000)
+    })
+}
+
+        </script>
+    </body>
+</html>
