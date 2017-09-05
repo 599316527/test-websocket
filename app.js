@@ -136,7 +136,8 @@ var wsServer = ws.createServer(function (conn) {
             data: Object.assign({
               ts: data.ts,
               ts2: Date.now(),
-              action: 'update'
+              action: 'update',
+              extraPayload: data.extraPayload
             }, data.data)
           }))
         })

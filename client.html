@@ -14,6 +14,10 @@
     border: 1px solid currentColor;
     padding: 2px 8px;
 }
+.log {
+    font-size: .8em;
+    line-height: 2;
+}
         </style>
     </head>
     <body>
@@ -38,13 +42,22 @@
     </div>
 </div>
 
+<div class="alert alert-info">
+    <div class="row log">
+        <div class="col-sm-4">
+            连接到: <u class="addr"></u>
+        </div>
+        <div class="col-xs-4">
+            延迟: <span id="legacy">--</span>
+        </div>
+        <div class="col-xs-4">
+            数据量: <span id="payload">--</span>
+        </div>
+    </div>
+</div>
+
 <div class="panel panel-default">
     <div class="panel-body">
-        <div class="log">
-            <span class="addr"></span>
-            &nbsp;&nbsp;&nbsp;&nbsp;
-            <small>延迟: <span id="legacy">-- </span>ms</small>
-        </div>
         <div id="content"></div>
     </div>
 </div>
@@ -60,6 +73,7 @@ $('.pair-code').val(getPairCode()).on('change', function () {
 
 var $content = $('#content')
 var $legacy = $('#legacy')
+var $payload = $('#payload')
 
 $('.pair-code-form').on('submit', function (evt) {
     evt.preventDefault()
@@ -72,7 +86,7 @@ $('.pair-code-form').on('submit', function (evt) {
     $button.attr('disabled', true).text('连接中')
 
     var addr = 'ws://' + location.hostname + ':18081'
-    $('.log .addr').html('<small>连接到 <u>' + addr + '</u></small> ')
+    $('.log .addr').html(addr)
 
     var socket = new WebSocket(addr);
 
@@ -97,6 +111,7 @@ $('.pair-code-form').on('submit', function (evt) {
         }
         else {
             data = data.data
+            data.payloadLength = event.data.length
             updateLegacy(data)
             updateContent(data)
         }
@@ -128,9 +143,8 @@ function getPairCode() {
 }
 
 function updateLegacy(data) {
-    var stage2 = Date.now() - data.ts2
-    var stage1 = data.ts2 - data.ts
-    $legacy.text(stage1 + '+' + stage2 + '=' + (stage1 + stage2))
+    $legacy.text((Date.now() - data.ts) / 1000 + 's')
+    $payload.text(smartFilesize(data.payloadLength))
 }
 
 function updateContent(data) {
@@ -138,6 +152,23 @@ function updateContent(data) {
         color: data.color,
         fontSize: data.size + 'px'
     })
+}
+
+var UNITS = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+var STEP = 1024;
+function format(value, power) {
+    return (value / Math.pow(STEP, power)).toFixed(2) + UNITS[power];
+}
+function smartFilesize(value) {
+    for (var i = 0; i < UNITS.length; i++) {
+        if (value < Math.pow(STEP, i)) {
+            if (UNITS[i - 1]) {
+                return format(value, i - 1);
+            }
+            return value + UNITS[i];
+        }
+    }
+    return format(value, i - 1);
 }
         </script>
     </body>
