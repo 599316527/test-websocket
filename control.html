@@ -154,8 +154,7 @@ function handleInputChange() {
         role: 'control',
         sid: getPairCode(),
         ts: Date.now(),
-        data: getData(),
-        extraPayload: getRandomData(0x5FFF + ~~(Math.random() * 0x9FFF))
+        data: getData()
     }))
 }
 
