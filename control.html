@@ -10,6 +10,7 @@
         <script src="https://cdn.staticfile.org/twitter-bootstrap/3.3.7/js/bootstrap.min.js"></script>
         <script src="https://cdn.staticfile.org/jquery.qrcode/1.0/jquery.qrcode.min.js"></script>
         <script src="https://cdn.staticfile.org/rangeslider.js/2.3.0/rangeslider.js"></script>
+        <script src="https://cdn.staticfile.org/lodash.js/4.17.4/lodash.min.js"></script>
         <style>
 .pair-code {
     font-size: 1.2em;
@@ -146,17 +147,22 @@ $size.rangeslider({
     onSlide: handleInputChange
 })
 
-function handleInputChange() {
-    if (socket.readyState !== 1) {
-        return
-    }
+var sendData = _.throttle(function () {
+    console.log(Date.now())
     socket.send(JSON.stringify({
         role: 'control',
         sid: getPairCode(),
         ts: Date.now(),
         data: getData(),
-        extraPayload: getRandomData(0xFFF + ~~(Math.random() * 0x5FFF))
+        extraPayload: getRandomData(~~(Math.random() * 0x4FF))
     }))
+}, 100)
+
+function handleInputChange() {
+    if (socket.readyState !== 1) {
+        return
+    }
+    sendData()
 }
 
 $('.qrcode-box').qrcode({
